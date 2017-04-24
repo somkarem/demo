@@ -1,0 +1,268 @@
+#%RAML 0.1
+title: HMCTS To-do App
+version: v1
+baseUri: "http://localhost:8080/todoapp/{version}"
+mediaType: "application/json"
+protocols: [ HTTP,HTTPS ]
+schemas:
+  - validationError: |
+      {
+          "$schema" : "http://json-schema.org/draft-03/schema" ,
+          "type" : "object" ,
+          "required" : true ,
+          "additionalProperties": false ,
+           "properties" : {
+            "field" : {
+              "required" : true ,
+              "type" : "string"
+            },
+            "reason" : {
+              "required" : true ,
+              "type" : "string"
+            }
+          }
+      }
+  - error: |
+      {
+          "$schema" : "http://json-schema.org/draft-03/schema" ,
+          "type" : "object" ,
+          "required" : true ,
+          "additionalProperties": false ,
+           "properties" : {
+            "code" : {
+              "required" : false ,
+              "type" : "string"
+            },
+            "message" : {
+              "required" : false ,
+              "type" : "string"
+            }
+          }
+      }
+  - validationErrors: |
+      {
+          "$schema" : "http://json-schema.org/draft-03/schema" ,
+          "type" : "object" ,
+          "required" : true ,
+          "additionalProperties": false ,
+          "properties" : {
+            "validationErrors" : {
+              "type" :"array",
+              "items" : { "$ref" : "validationError" }
+            }
+          }
+      }
+  - createTask: |
+        {
+          "$schema" : "http://json-schema.org/draft-03/schema" ,
+          "type" : "object" ,
+          "required" : true ,
+          "additionalProperties": false ,
+          "properties" : {
+            "taskId" : {
+              "required" : true ,
+              "type" : "string" ,
+              "minLength" : 1,
+              "maxLength" : 35
+            } ,
+            "taskName" : {
+              "required" : true ,
+              "type" : "string" ,
+              "maxLength" : 35
+            },
+            "taskDescription" : {
+              "required" : true ,
+              "type" : "string" ,
+              "minLength" : 1,
+              "maxLength" : 255
+            },
+            "taskStatus" : {
+              "required" : true ,
+              "description": "Valid values are, ToBeDone or Completed",
+              "type" : "string"
+            },
+            "taskPriority" : {
+              "required" : true ,
+              "description": "Valid values are, High or Medium or Low",
+              "type" : "string"
+            },
+            "taskScheduleTimeStamp" : {
+              "required" : true ,
+              "type" : "string"
+            }
+          }
+        }
+  - getTask: |
+        {
+          "$schema" : "http://json-schema.org/draft-03/schema" ,
+          "type" : "object" ,
+          "additionalProperties": false ,
+          "properties" : {
+            "taskId" : {
+              "type" : "string"
+            },
+            "taskName" : {
+              "type" : "string"
+            },
+            "taskDescription" : {
+              "type" : "string"
+            },
+            "taskStatus" : {
+              "type" : "string"
+            },
+            "taskPriority" : {
+              "type" : "string"
+            },
+            "taskScheduleTimeStamp" : {
+              "type" : "string"
+            }
+          }
+        }
+  - deleteTaskInput: |
+      {
+          "$schema" : "http://json-schema.org/draft-03/schema" ,
+          "type" : "object" ,
+          "required" : true ,
+          "properties" : {
+            "taskId" : {
+              "required" : true ,
+              "type" : "string"
+            }
+          }
+      }
+  - patchObject: |
+      {
+          "$schema" : "http://json-schema.org/draft-03/schema",
+          "type" : "object",
+          "description": "partly conform to https://tools.ietf.org/html/rfc6902",
+          "required" : true,
+          "properties" : {
+            "op" : {
+              "required" : true ,
+              "type" : "string" ,
+              "description" : "values allowed are (add, remove, replace)"
+            },
+            "path" : {
+              "required" : true,
+              "type" : "string"
+            },
+            "value" : {
+              "required" : false ,
+              "type" : "string"
+            }
+          }
+      }
+  - patchCollection: |
+      {
+          "$schema" : "http://json-schema.org/draft-03/schema" ,
+          "type" : "object" ,
+          "required" : true ,
+          "properties" : {
+            "actions" : {
+              "type" :"array",
+              "items" : { "$ref" : "patchObject" }
+            }
+          }
+      }     
+/todolist:
+  post:
+    description: "Create a new to-do list"
+    body:
+      application/json:
+        schema: createTask
+    responses:
+      201:
+        body:
+          application/json:
+            schema: getTask
+      400:
+        description: |
+          The request was invalid
+        body:
+          application/json:
+            schema: error
+      409:
+        description: |
+          The entity already exists
+        body:
+          application/json:
+            schema: error
+      422:
+        description: |
+          Validation error
+        body:
+          application/json:
+            schema: validationErrors
+      500:
+        description: |
+          Something is broken. Please contact the help desk
+        body:
+          application/json:
+            schema: error
+  patch:
+    description: "Patch a specific task or memo"
+    body:
+      application/json:
+        schema: patchCollection
+    responses:
+      200:
+        body:
+          application/json:
+            schema: getTask
+      400:
+        description: |
+          The request was invalid
+        body:
+          application/json:
+            schema: error
+      404:
+        description: |
+          Task not Found
+        body:
+          application/json:
+            schema: error
+      422:
+        description: |
+          Validation error
+        body:
+          application/json:
+            schema: validationErrors
+      500:
+        description: |
+          Something is broken. Please contact the help desk
+        body:
+          application/json:
+            schema: error
+  delete:
+    description: "Remove a specific to-do list"
+    body:
+      application/json:
+        schema: deleteTaskInput
+    responses:
+      204:
+        description: |
+          Entity had been deleted
+      400:
+        description: |
+          The request was invalid
+        body:
+          application/json:
+            schema: error
+      404:
+        description: |
+          Task not Found
+        body:
+          application/json:
+            schema: error
+      422:
+        body:
+          application/json:
+            schema: validationErrors
+        description: |
+          Entity is in incorrect state
+      500:
+        description: |
+          Something is broken. Please contact the help desk
+        body:
+          application/json:
+            schema: error
